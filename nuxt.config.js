@@ -21,6 +21,7 @@ export default defineNuxtConfig({
   ],
 
   app: {
+    baseURL: process.env.NUXT_APP_BASE_URL || '/', // 通过环境变量配置子路径
     pageTransition: { name: 'blur', mode: 'out-in' } // 页面过渡效果
   },
 
