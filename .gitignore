@@ -1,34 +1,81 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.output/
+dist/
+.nuxt/
+
+# Cache
+.cache/
+.npm/
+.eslintcache
+
 # Logs
-logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
 lerna-debug.log*
+pnpm-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*.local
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
+# Testing
+coverage/
+.nyc_output/
 
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# IDE
-.idea
-.nuxt
-.output
+# Temporary files
+*.tmp
+*.temp
+.temp/
+.tmp/
+
+# Package manager locks (choose based on your package manager)
+# Uncomment if using yarn
+# yarn.lock
+# Uncomment if using pnpm
+# pnpm-lock.yaml
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# pnpm
+pnpm-debug.log*
+.env.serve
+
+# Nuxt Kit module builds
+_modules/
+
+# Release
+.release-it.json

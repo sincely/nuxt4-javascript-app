@@ -24,11 +24,14 @@
 | Git 规范 | Husky + Commitlint + Lint-staged    | —             |
 | 版本发布 | Release-it                          | 20.2.0        |
 | 进程管理 | PM2（ecosystem.config.js）          | —             |
+| 容器化   | Docker + Docker Compose             | —             |
 
 ## 环境要求
 
 - Node.js >= 18.14.0
 - pnpm >= 7.x（推荐）
+- Docker >= 20.10（可选，用于容器化部署）
+- Docker Compose >= 2.0（可选，用于编排部署）
 
 ## 快速开始
 
@@ -332,6 +335,85 @@ pnpm run release:beta      # 发布 Beta 预版本
 ```
 
 ## 生产部署
+
+### Docker 容器化部署（推荐）
+
+项目已配置完整的 Docker 支持，采用**多阶段构建**优化镜像大小和构建效率。
+
+#### Docker 文件说明
+
+| 文件                 | 说明                          |
+| -------------------- | ----------------------------- |
+| `Dockerfile`         | 多阶段构建配置（构建 + 运行） |
+| `docker-compose.yml` | Docker Compose 编排配置       |
+| `.dockerignore`      | Docker 构建上下文忽略规则     |
+
+#### 方式一：使用 Docker Compose（推荐）
+
+```bash
+# 构建并启动容器
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f
+
+# 查看容器状态
+docker-compose ps
+
+# 停止并移除容器
+docker-compose down
+
+# 重新构建并启动（代码更新后）
+docker-compose up -d --build
+```
+
+#### 方式二：使用 Docker 命令
+
+```bash
+# 构建 Docker 镜像
+docker build -t nuxt-app .
+
+# 运行容器
+docker run -d -p 3000:3000 --name nuxt-app nuxt-app
+
+# 查看日志
+docker logs -f nuxt-app
+
+# 停止容器
+docker stop nuxt-app
+
+# 删除容器
+docker rm nuxt-app
+
+# 删除镜像
+docker rmi nuxt-app
+```
+
+#### Docker 构建优化
+
+- **多阶段构建**：构建阶段安装依赖和编译，运行阶段仅包含产物
+- **优化 .dockerignore**：排除 `node_modules`、`.git`、文档等不必要的文件
+- **层缓存优化**：先复制 `package*.json` 再复制源码，利用 Docker 层缓存
+- **轻量基础镜像**：使用 `node:20-alpine` 减小镜像体积
+
+#### 环境变量配置
+
+在 `docker-compose.yml` 中配置环境变量：
+
+```yaml
+environment:
+  - NODE_ENV=production
+  - NUXT_PUBLIC_API_BASE=http://10.102.129.12:18088
+```
+
+或在运行 Docker 时传入：
+
+```bash
+docker run -d -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e NUXT_PUBLIC_API_BASE=http://10.102.129.12:18088 \
+  --name nuxt-app nuxt-app
+```
 
 ### PM2 集群部署
 
