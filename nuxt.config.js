@@ -7,7 +7,8 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      baseUrl: process.env.NUXT_BASE_URL
+      baseUrl: process.env.NUXT_BASE_URL,
+      apiBase: process.env.NUXT_APP_API_ROOT || 'http://10.102.129.12:18088'
     }
   },
   modules: [
