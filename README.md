@@ -175,6 +175,388 @@ nuxt4-javascript-app/
 
 ## Nuxt 4 核心配置
 
+### Nuxt 4 vs Nuxt 3 核心差异
+
+| 能力维度         | Nuxt 3               | Nuxt 4                      |
+| ---------------- | -------------------- | --------------------------- |
+| 目录结构         | 根目录约定           | `app/` 目录隔离             |
+| 渲染模式         | SSR/SSG/SPA/ISR/Edge | 全部保留 + 更细粒度控制     |
+| 状态管理         | Pinia                | Pinia 2 + useState          |
+| TypeScript       | 原生支持             | 深度类型推导 + 更严格的推断 |
+| 服务端引擎       | Nitro                | Nitro 2(更多部署目标)       |
+| 缓存策略         | 基础                 | runtimeCache 细粒度控制     |
+| View Transitions | 实验性               | 稳定支持                    |
+| 模块兼容性       | 部分需适配           | 需检查兼容性                |
+| CSS 处理         | PostCSS              | LightningCSS(更快)          |
+
+### Nuxt 4 迁移指南(Nuxt 3 → 4)
+
+如果您从 Nuxt 3 迁移到 Nuxt 4,需要注意以下破坏性更新:
+
+#### 1. 目录结构迁移
+
+Nuxt 4 最重要的 Breaking Change — 所有前端相关代码必须迁移到 `app/` 目录:
+
+```bash
+# Nuxt 3 目录结构
+nuxt-3-project/
+├── pages/           # ❌ 需要迁移
+├── components/      # ❌ 需要迁移
+├── composables/     # ❌ 需要迁移
+├── layouts/         # ❌ 需要迁移
+├── middleware/      # ❌ 需要迁移
+├── plugins/         # ❌ 需要迁移
+├── assets/          # ❌ 需要迁移
+├── public/          # ❌ 需要迁移
+├── app.vue          # ❌ 需要迁移
+└── server/          # ✅ 保持不变
+
+# Nuxt 4 目录结构
+nuxt-4-project/
+├── app/             # ✅ 新增 app/ 目录
+│   ├── pages/       # ✅ 迁移到这里
+│   ├── components/  # ✅ 迁移到这里
+│   ├── composables/ # ✅ 迁移到这里
+│   ├── layouts/     # ✅ 迁移到这里
+│   ├── middleware/  # ✅ 迁移到这里
+│   ├── plugins/     # ✅ 迁移到这里
+│   ├── assets/      # ✅ 迁移到这里
+│   ├── public/      # ✅ 迁移到这里
+│   └── app.vue      # ✅ 迁移到这里
+└── server/          # ✅ 保持不变
+```
+
+**迁移脚本:**
+
+```bash
+# 自动迁移命令
+mkdir -p app
+mv pages components composables layouts middleware plugins assets app.vue app/
+
+# 如果 public 已存在,需要手动处理冲突
+# mv app/public/* public/
+# rm -rf app/public
+```
+
+#### 2. 配置文件变化
+
+```javascript
+// nuxt.config.ts (Nuxt 4)
+export default defineNuxtConfig({
+  compatibilityDate: '2025-01-01', // ⭐ 新增:启用 Nuxt 4 行为
+  future: { compatibilityVersion: 4 } // ⭐ 新增:启用 Nuxt 4 兼容模式
+
+  // ...其他配置保持不变
+})
+```
+
+**关键配置项:**
+
+- `compatibilityDate` - 必须设置,确定使用哪个版本的行为
+- `future.compatibilityVersion: 4` - 明确启用 Nuxt 4 特性
+
+#### 3. 模块迁移检查
+
+Nuxt 4 对模块兼容性有更高要求,需要检查所有使用的模块:
+
+```bash
+# 检查模块兼容性
+npm outdated
+# 或
+pnpm outdated
+
+# 更新模块到 Nuxt 4 兼容版本
+npm update @nuxt/*
+# 或
+pnpm update @nuxt/*
+```
+
+**常见模块迁移:**
+
+| 模块             | Nuxt 3 版本 | Nuxt 4 版本 | 变化     |
+| ---------------- | ----------- | ----------- | -------- |
+| `@nuxt/devtools` | `^1.0.0`    | `^1.5.0+`   | 需要更新 |
+| `@pinia/nuxt`    | `0.5.x`     | `0.8.x+`    | API 变化 |
+| `@nuxtjs/i18n`   | `8.x`       | `9.x+`      | 配置变化 |
+| `@nuxt/image`    | `1.0.0`     | `1.4.0+`    | 兼容     |
+
+#### 4. TypeScript 严格模式
+
+Nuxt 4 默认启用更严格的类型推导:
+
+```typescript
+// Nuxt 3 (宽松)
+const { data } = await useFetch('/api/posts')
+// data.value 可能是 any 类型
+
+// Nuxt 4 (严格)
+const { data } = await useFetch<Post[]>('/api/posts')
+// data.value 正确推导为 Post[] | null
+```
+
+**迁移建议:**
+
+- 为所有 API 请求添加类型注解
+- 检查隐式 `any` 类型错误
+- 使用 `interface` 或 `type` 明确定义数据结构
+
+#### 5. CSS 处理变化
+
+Nuxt 4 使用 LightningCSS 替代 PostCSS,速度更快:
+
+```javascript
+// nuxt.config.js
+export default defineNuxtConfig({
+  css: [
+    '~/assets/css/main.css'
+    // 不再需要 postcss.config.js
+  ]
+})
+```
+
+**迁移注意:**
+
+- 移除 `postcss.config.js` 文件
+- 检查自定义 PostCSS 插件是否兼容 LightningCSS
+- 大多数项目无需修改即可工作
+
+#### 6. 自动导入变化
+
+Nuxt 4 增强了自动导入,但需要注意:
+
+```javascript
+// ✅ 仍然自动导入
+- app/composables/ 下的函数
+- app/components/ 下的组件
+- Vue API (ref, computed, watch 等)
+
+// ⚠️ 需要手动导入
+- node_modules 中的包(如 axios, dayjs)
+- server/utils/ 中的工具函数(仅服务端)
+```
+
+#### 7. 破坏性更新清单
+
+**必须修改:**
+
+- [ ] 移动所有前端代码到 `app/` 目录
+- [ ] 添加 `compatibilityDate` 配置
+- [ ] 添加 `future.compatibilityVersion: 4`
+- [ ] 更新所有 Nuxt 模块到最新版本
+- [ ] 检查 TypeScript 类型错误
+
+**建议修改:**
+
+- [ ] 移除 `postcss.config.js`(如果使用 LightningCSS)
+- [ ] 检查自定义插件兼容性
+- [ ] 更新 CI/CD 构建脚本
+- [ ] 测试生产环境部署
+- [ ] 检查第三方库兼容性
+
+**可能影响:**
+
+- [ ] 自动导入范围变化
+- [ ] CSS 处理性能变化(通常更快)
+- [ ] 构建输出格式变化
+- [ ] 模块配置项变化
+
+#### 8. 迁移步骤
+
+**Step 1: 备份项目**
+
+```bash
+git checkout -b nuxt4-migration
+git commit -m "backup: before Nuxt 4 migration"
+```
+
+**Step 2: 升级依赖**
+
+```bash
+# 更新 Nuxt 到 4.x
+npm install nuxt@latest
+# 或
+pnpm add nuxt@latest
+
+# 更新相关模块
+npm update @nuxt/* @pinia/nuxt @vueuse/nuxt
+```
+
+**Step 3: 迁移目录**
+
+```bash
+# 创建 app/ 目录
+mkdir -p app
+
+# 迁移文件
+mv pages components composables layouts middleware plugins assets app.vue app/
+
+# 处理 public/ 目录(如果与已有 public 冲突)
+# mv app/public/* public/ 2>/dev/null || true
+# rm -rf app/public
+```
+
+**Step 4: 更新配置**
+
+```javascript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  compatibilityDate: '2025-01-01',
+  future: { compatibilityVersion: 4 }
+  // ...保持其他配置
+})
+```
+
+**Step 5: 修复类型错误**
+
+```bash
+# 运行类型检查
+npx nuxi typecheck
+
+# 或
+tsc --noEmit
+```
+
+**Step 6: 测试**
+
+```bash
+# 开发环境测试
+npm run dev
+
+# 构建测试
+npm run build
+
+# 生产预览
+npm run preview
+```
+
+**Step 7: 部署验证**
+
+```bash
+# 测试生产构建
+npm run build:prod
+
+# 部署到测试环境
+# 验证所有功能正常
+```
+
+#### 9. 常见问题
+
+**Q1: 迁移后找不到页面?**
+
+```bash
+# 检查文件是否在 app/pages/ 目录下
+ls app/pages/
+
+# 确保路由文件命名正确
+# index.vue → /
+# about.vue → /about
+# [id].vue → /:id
+```
+
+**Q2: 组件未自动导入?**
+
+```javascript
+// 确保组件在 app/components/ 目录下
+// 检查组件文件名是否 PascalCase
+// MyComponent.vue ✅
+// my-component.vue ✅
+// myComponent.vue ❌
+```
+
+**Q3: 构建失败?**
+
+```bash
+# 清除缓存
+rm -rf .nuxt .output node_modules
+npm install
+npm run build
+
+# 检查模块兼容性
+npm ls @nuxt/*
+```
+
+**Q4: TypeScript 报错?**
+
+```typescript
+// 为 useFetch 添加类型
+interface Post {
+  id: number
+  title: string
+  content: string
+}
+
+const { data } = await useFetch<Post[]>('/api/posts')
+```
+
+#### 10. 迁移工具
+
+**官方迁移工具:**
+
+```bash
+# Nuxt 提供迁移辅助工具
+npx nuxi@latest upgrade --force
+
+# 检查兼容性问题
+npx nuxi@latest info
+```
+
+**手动检查清单:**
+
+```bash
+#!/bin/bash
+# migration-check.sh
+
+echo "=== Nuxt 4 迁移检查 ==="
+
+# 检查 app/ 目录
+if [ -d "app" ]; then
+  echo "✅ app/ 目录存在"
+else
+  echo "❌ 需要创建 app/ 目录"
+fi
+
+# 检查配置文件
+if grep -q "compatibilityDate" nuxt.config.*; then
+  echo "✅ compatibilityDate 已配置"
+else
+  echo "❌ 需要添加 compatibilityDate"
+fi
+
+# 检查旧目录
+if [ -d "pages" ] || [ -d "components" ]; then
+  echo "⚠️ 发现旧目录,需要迁移到 app/"
+else
+  echo "✅ 旧目录已清理"
+fi
+
+echo "=== 检查完成 ==="
+```
+
+#### 11. 迁移后优化
+
+迁移完成后,可以利用 Nuxt 4 的新特性:
+
+```javascript
+// 启用 View Transitions
+export default defineNuxtConfig({
+  experimental: {
+    viewTransition: true
+  }
+})
+
+// 使用混合渲染
+export default defineNuxtConfig({
+  routeRules: {
+    '/': { prerender: true },
+    '/blog': { swr: 3600 },
+    '/dashboard': { ssr: false }
+  }
+})
+
+// 使用 LightningCSS(默认启用)
+// 无需额外配置,自动生效
+```
+
 ### nuxt.config.js 要点
 
 ```js
@@ -442,6 +824,210 @@ pageTransition: { name: 'zoom', mode: 'out-in' }
 
 ## 功能模块说明
 
+### 数据获取：Nuxt 4 的 SSR 友好方案
+
+Nuxt 4 提供了强大的数据获取能力,完美支持 SSR:
+
+#### 1. useAsyncData — 核心数据获取
+
+```vue
+<script setup>
+const { data, pending, error, refresh, clear } = await useAsyncData(
+  'post-list', // 缓存键(唯一)
+  () => $fetch('/api/posts'), // 异步获取函数
+  {
+    server: true, // 服务端执行(默认 true)
+    lazy: false, // true = 客户端挂起显示骨架屏
+    default: () => [], // 骨架屏 / 初始值
+    transform: (data) => data.posts, // 数据转换
+    pick: ['id', 'title', 'slug'] // 只取需要的字段
+  }
+)
+</script>
+```
+
+#### 2. useFetch — 语法糖
+
+```vue
+<script setup>
+// GET 请求
+const { data } = await useFetch('/api/posts', {
+  query: { page: 1, limit: 20 }, // 自动拼接到 URL
+  headers: useRequestHeaders(['cookie']) // 传递 cookie
+})
+
+// POST 请求
+const { data } = await useFetch('/api/posts', {
+  method: 'POST',
+  body: { title: 'Nuxt 4', content: '...' }
+})
+</script>
+```
+
+#### 3. 客户端刷新
+
+```vue
+<script setup>
+const { data, refresh } = await useAsyncData('posts', () => $fetch('/api/posts'))
+
+// 手动刷新
+await refresh()
+
+// 带选项刷新(绕过缓存)
+await refresh({ dedupe: true })
+</script>
+```
+
+#### 4. useNuxtData — 更灵活的缓存控制
+
+```vue
+<script setup>
+// 在页面加载前检查缓存
+const { data: cachedPost } = useNuxtData('post-detail')
+
+if (cachedPost.value) {
+  // 有缓存,直接使用,不发起请求
+  console.log('命中客户端缓存:', cachedPost.value)
+}
+
+// 即使有缓存也强制刷新
+const { data } = await useFetch('/api/posts/1', {
+  getCachedData: () => null // 强制跳过缓存
+})
+</script>
+```
+
+### 混合渲染(Hybrid Rendering)
+
+Nuxt 最强大的特性之一,通过 `routeRules` 精细控制每条路由的渲染策略:
+
+#### 路由规则配置
+
+```javascript
+// nuxt.config.js
+export default defineNuxtConfig({
+  routeRules: {
+    // 首页:构建时静态生成
+    '/': { prerender: true },
+
+    // 博客列表:增量静态再生(SWR),1 小时新鲜度
+    '/blog': { swr: 3600 },
+
+    // 博客详情:SWR + 自动爬取链接预渲染
+    '/blog/**': {
+      swr: 86400,
+      prerender: ['/blog/getting-started-with-nuxt4'],
+      crawlLinks: true
+    },
+
+    // 文档:静态生成
+    '/docs/**': { prerender: true },
+
+    // 仪表盘:纯客户端渲染(需要登录的页面)
+    '/dashboard/**': { ssr: false },
+
+    // 管理后台:服务端渲染 + 中间件
+    '/admin': {
+      ssr: true,
+      middleware: ['auth']
+    },
+
+    // API 路由:跨域开放
+    '/api/**': { cors: true },
+
+    // 用户个人页:SSR + 缓存
+    '/u/**': { ssr: true, cache: { maxAge: 300, staleMaxAge: 600 } },
+
+    // 默认:CDN 缓存 60 秒
+    '/**': { cache: { maxAge: 60 } }
+  }
+})
+```
+
+#### 渲染模式详解
+
+| 渲染模式    | 说明与适用场景                              |
+| ----------- | ------------------------------------------- |
+| `prerender` | 构建时生成 HTML,适合内容固定不变的页面      |
+| `swr`       | Stale-While-Revalidate,首推 ISR 方案        |
+| `ssr`       | 服务端渲染,首屏 SEO 友好,适合内容动态的页面 |
+| `spa`       | 纯客户端渲染,适合高度交互的后台管理界面     |
+| `isr`       | 增量静态再生,通过 swr 实现                  |
+| `edge`      | CDN 边缘节点直出,全球 < 50ms 延迟           |
+
+### 状态管理
+
+#### 方案一:useState(轻量级)
+
+```javascript
+// app/composables/useAuth.js
+export const useAuth = () => {
+  const token = useState('token', () => null)
+  const user = useState('user', () => null)
+  const isAuthenticated = computed(() => !!token.value)
+
+  const login = async (credentials) => {
+    const { data } = await useFetch('/api/auth/login', {
+      method: 'POST',
+      body: credentials
+    })
+    token.value = data.value?.token
+    user.value = data.value?.user
+  }
+
+  const logout = () => {
+    token.value = null
+    user.value = null
+    navigateTo('/login')
+  }
+
+  return {
+    token: readonly(token),
+    user: readonly(user),
+    isAuthenticated,
+    login,
+    logout
+  }
+}
+```
+
+#### 方案二:Pinia(复杂场景)
+
+```javascript
+// composables/cart.js
+import { defineStore } from 'pinia'
+
+export const useCartStore = defineStore(
+  'cart',
+  () => {
+    const items = ref([])
+    const isLoading = ref(false)
+
+    const itemCount = computed(() => items.value.reduce((sum, i) => sum + i.quantity, 0))
+
+    const totalPrice = computed(() => items.value.reduce((sum, i) => sum + i.price * i.quantity, 0))
+
+    const addItem = async (product) => {
+      const existing = items.value.find((i) => i.id === product.id)
+      if (existing) {
+        existing.quantity++
+      } else {
+        items.value.push({ ...product, quantity: 1 })
+      }
+    }
+
+    const removeItem = (id) => {
+      items.value = items.value.filter((i) => i.id !== id)
+    }
+
+    return { items, isLoading, itemCount, totalPrice, addItem, removeItem }
+  },
+  {
+    persist: true // 开启持久化
+  }
+)
+```
+
 ### 首页 — Swiper 全屏滚动
 
 首页采用 **垂直全屏 Swiper** 实现单页滚动浏览，包含 6 个板块：
@@ -515,7 +1101,176 @@ pageTransition: { name: 'zoom', mode: 'out-in' }
 
 页面中通过 `definePageMeta({ layout: 'global-layout' })` 指定布局。
 
+### 路由中间件
+
+路由中间件可以在页面渲染前执行,常用于权限验证:
+
+#### 1. 命名中间件
+
+```javascript
+// app/middleware/auth.js
+export default defineNuxtRouteMiddleware((to, from) => {
+  const { isAuthenticated } = useAuth()
+
+  if (!isAuthenticated.value) {
+    return navigateTo(`/login?redirect=${to.fullPath}`)
+  }
+})
+
+// 在页面中使用
+// app/pages/dashboard/index.vue
+<script setup>
+definePageMeta({ middleware: ['auth'] })
+</script>
+```
+
+#### 2. 带参数的中间件
+
+```javascript
+// app/middleware/role.js
+export default defineNuxtRouteMiddleware((to, from) => {
+  const { user } = useAuth()
+  const requiredRole = to.meta.role
+
+  if (requiredRole && user.value?.role !== requiredRole) {
+    throw createError({ statusCode: 403, message: '权限不足' })
+  }
+})
+
+// 在页面中使用
+// app/pages/admin/users.vue
+<script setup>
+definePageMeta({
+  middleware: [{ name: 'role', params: { role: 'admin' } }]
+})
+</script>
+```
+
+#### 3. 全局中间件
+
+```javascript
+// app/middleware/global.js
+// 文件名以 .global.js 结尾，将对所有路由生效
+export default defineNuxtRouteMiddleware((to, from) => {
+  console.log('全局中间件执行', to.fullPath)
+})
+```
+
 ## 服务端 API
+
+### Nitro Server 引擎
+
+Nuxt 4 使用 Nitro 2 作为服务端引擎,支持更多部署目标:
+
+#### 1. API 路由
+
+```javascript
+// server/api/posts/index.get.ts — GET /api/posts
+export default defineEventHandler(async (event) => {
+  const query = getQuery(event)
+  const page = Number(query.page) || 1
+  const limit = Number(query.limit) || 20
+
+  return {
+    posts: [
+      { id: 1, title: 'Nuxt 4 新特性', slug: 'nuxt4-features' },
+      { id: 2, title: 'Nitro 2 引擎解析', slug: 'nitro-2' },
+    ],
+    pagination: { page, limit, total: 42 }
+  }
+})
+
+// server/api/posts/index.post.ts — POST /api/posts
+export default defineEventHandler(async (event) => {
+  const body = await readBody(event)
+
+  // 验证
+  if (!body.title) {
+    throw createError({
+      statusCode: 400,
+      message: '标题不能为空',
+    })
+  }
+
+  // 业务逻辑
+  const post = await createPost(body)
+
+  setResponseStatus(event, 201)
+  return { post }
+})
+
+// server/api/posts/[id].get.ts — GET /api/posts/:id
+export default defineEventHandler(async (event) => {
+  const id = Number(getRouterParam(event, 'id'))
+  const post = await getPostById(id)
+
+  if (!post) {
+    throw createError({ statusCode: 404, message: '文章不存在' })
+  }
+
+  return post
+})
+```
+
+#### 2. 服务端中间件
+
+```javascript
+// server/middleware/auth.ts
+export default defineEventHandler(async (event) => {
+  const publicPaths = ['/api/auth/login', '/api/posts']
+  const path = getRequestURL(event).pathname
+
+  if (publicPaths.some((p) => path.startsWith(p))) return
+
+  const token = getHeader(event, 'Authorization')?.replace('Bearer ', '')
+
+  if (!token) {
+    throw createError({ statusCode: 401, message: '未授权' })
+  }
+
+  try {
+    const user = await verifyJWT(token)
+    event.context.user = user
+  } catch {
+    throw createError({ statusCode: 401, message: 'Token 无效' })
+  }
+})
+```
+
+#### 3. WebSocket 支持
+
+```javascript
+// server/routes/_ws.ts
+export default defineWebSocketHandler({
+  open(peer) {
+    console.log('[ws] Client connected:', peer.id)
+    peer.send(JSON.stringify({ type: 'connected' }))
+  },
+  message(peer, message) {
+    try {
+      const data = JSON.parse(message.text())
+      switch (data.type) {
+        case 'ping':
+          peer.send(JSON.stringify({ type: 'pong', ts: Date.now() }))
+          break
+        case 'subscribe':
+          peer.subscribedChannels.add(data.channel)
+          break
+        default:
+          peer.send(JSON.stringify({ type: 'error', message: 'Unknown type' }))
+      }
+    } catch {
+      peer.send(JSON.stringify({ type: 'error', message: 'Invalid JSON' }))
+    }
+  },
+  close(peer) {
+    console.log('[ws] Client disconnected:', peer.id)
+  },
+  error(peer, error) {
+    console.error('[ws] Error:', error)
+  }
+})
+```
 
 | 路由            | 文件                     | 说明                         |
 | --------------- | ------------------------ | ---------------------------- |
@@ -535,6 +1290,83 @@ export const useUserStore = defineStore('user', () => {
   }
   return { setNewName, savedName }
 })
+```
+
+## 自动导入（Auto-imports）
+
+Nuxt 4 的自动导入能力在 Nuxt 3 基础上进一步增强:
+
+### 自动导入范围
+
+| 类别       | 扫描目录           | 示例                             |
+| ---------- | ------------------ | -------------------------------- |
+| 组合式函数 | `app/composables/` | `useCounter()`                   |
+| Vue API    | 内置               | `ref`, `computed`, `watch`       |
+| 组件       | `app/components/`  | `<Button />`                     |
+| 工具函数   | `server/utils/`    | 服务端工具可被客户端安全函数调用 |
+| 样式       | `assets/`          | Vite 自动处理                    |
+
+### 使用示例
+
+```javascript
+// app/composables/useCounter.js
+export const useCounter = () => {
+  const count = useState('count', () => 0)
+  const increment = () => count.value++
+  const decrement = () => count.value--
+  const reset = () => (count.value = 0)
+
+  return { count: readonly(count), increment, decrement, reset }
+}
+
+// app/pages/index.vue — 无需任何 import
+<script setup>
+const { count, increment } = useCounter()
+</script>
+```
+
+## View Transitions（视图过渡）
+
+Nuxt 4 稳定支持 View Transitions API:
+
+### 配置
+
+```javascript
+// nuxt.config.js
+export default defineNuxtConfig({
+  experimental: {
+    viewTransition: true // 启用 View Transitions
+  }
+})
+```
+
+### 使用
+
+```vue
+<!-- app/pages/index.vue -->
+<template>
+  <NuxtLink to="/blog" class="card">
+    <img src="/cover.jpg" />
+    <h2>文章标题</h2>
+    <NuxtPage :transition="{ name: 'slide' }" />
+  </NuxtLink>
+</template>
+
+<style>
+/* 视图过渡动画 */
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.3s ease;
+}
+.slide-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+.slide-leave-to {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+</style>
 ```
 
 ## 工程化规范

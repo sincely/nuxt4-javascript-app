@@ -5,6 +5,18 @@ export default defineNuxtConfig({
   future: {
     compatibilityVersion: 4
   },
+  app: {
+    head: {
+      title: '我的 Nuxt 4 应用',
+      meta: [
+        { name: 'description', content: '基于 Nuxt 4 的现代 Web 应用' }
+      ],
+      link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }
+      ]
+    },
+  },
+
   runtimeConfig: {
     public: {
       baseUrl: process.env.NUXT_BASE_URL,
